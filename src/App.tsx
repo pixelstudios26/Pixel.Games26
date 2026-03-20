@@ -55,6 +55,7 @@ export const GAMES = [
 ];
 
 export default function App() {
+  const [isBooting, setIsBooting] = useState(true);
   const [activeGame, setActiveGame] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -69,6 +70,13 @@ export default function App() {
     }
   });
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsBooting(false);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
   const filteredGames = useMemo(() => {
     return GAMES.filter(game => 
       game.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -82,18 +90,54 @@ export default function App() {
     const username = formData.get('username') as string;
     const newUser = { username };
     setUser(newUser);
-    localStorage.setItem('pixel_user', JSON.stringify(newUser));
+    try {
+      localStorage.setItem('pixel_user', JSON.stringify(newUser));
+    } catch (e) {
+      console.error("Failed to save user to localStorage", e);
+    }
     setIsAuthModalOpen(false);
   };
 
   const handleLogout = () => {
     setUser(null);
-    localStorage.removeItem('pixel_user');
+    try {
+      localStorage.removeItem('pixel_user');
+    } catch (e) {
+      console.error("Failed to remove user from localStorage", e);
+    }
   };
+
+  if (isBooting) {
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center font-pixel p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex flex-col items-center gap-6"
+        >
+          <div className="w-20 h-20 bg-white flex items-center justify-center animate-pulse">
+            <Ghost className="text-black" size={40} />
+          </div>
+          <div className="space-y-2 text-center">
+            <div className="text-white text-[10px] tracking-[0.2em]">BOOTING SYSTEM...</div>
+            <div className="text-zinc-700 text-[8px]">v1.0.4-BETA // PIXEL STUDIOS</div>
+          </div>
+          <div className="w-48 h-1 bg-zinc-900 overflow-hidden relative">
+            <motion.div
+              initial={{ x: '-100%' }}
+              animate={{ x: '100%' }}
+              transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+              className="absolute inset-0 w-full h-full bg-white"
+            />
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   const renderGame = () => {
     const game = GAMES.find(g => g.id === activeGame);
-    if (!game) return null;
+    if (!game || !activeGame) return null;
 
     const gameUrls: Record<string, string> = {
       minecraft: "https://classroomlesson.github.io/basic-ruffle-player/html/minecraft/index.html?school=1",
@@ -103,6 +147,8 @@ export default function App() {
       'steal-a-brainrot': "https://classroomlesson.github.io/basic-ruffle-player/html/steal_a_brainrot_2/index.html?school=1",
       'snow-rider': "https://classroomlesson.github.io/basic-ruffle-player/html/snow_rider_3d/index.html?school=1"
     };
+
+    const url = gameUrls[activeGame];
 
     const handleFullscreen = () => {
       const iframe = document.getElementById('game-iframe');
@@ -117,6 +163,15 @@ export default function App() {
       }
     };
 
+    if (!url) {
+      return (
+        <div className="flex flex-col items-center gap-4">
+          <Ghost className="text-zinc-800" size={48} />
+          <div className="font-pixel text-[10px] text-zinc-700">GAME SOURCE NOT FOUND</div>
+        </div>
+      );
+    }
+
     return (
       <div className="w-full h-full flex flex-col items-center justify-center bg-black gap-6">
         <div className="relative w-full h-[600px] border-4 border-white pixel-border bg-zinc-950 flex items-center justify-center overflow-hidden">
@@ -129,7 +184,7 @@ export default function App() {
           <iframe 
             id="game-iframe" 
             name="appFrame" 
-            src={gameUrls[activeGame!]} 
+            src={url} 
             title="game-frame" 
             allowFullScreen={true}
             allow="autoplay; fullscreen; camera; focus-without-user-activation *; monetization; gamepad; keyboard-map *; xr-spatial-tracking; clipboard-write" 
