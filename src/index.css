@@ -1,0 +1,56 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-pixel: "Press Start 2P", system-ui, sans-serif;
+  --font-sans: "Space Grotesk", system-ui, sans-serif;
+  
+  --color-pixel-green: #ffffff;
+  --color-pixel-pink: #ffffff;
+  --color-pixel-blue: #ffffff;
+  --color-pixel-yellow: #ffffff;
+}
+
+@layer base {
+  body {
+    @apply bg-black text-white font-sans selection:bg-white selection:text-black;
+  }
+}
+
+.pixel-border {
+  box-shadow: 
+    0 -4px 0 0 #fff,
+    0 4px 0 0 #fff,
+    -4px 0 0 0 #fff,
+    4px 0 0 0 #fff;
+}
+
+.pixel-button {
+  @apply relative inline-block px-4 py-2 bg-zinc-900 text-white font-pixel text-[10px] uppercase transition-all active:translate-y-1 border-2 border-white;
+}
+
+.pixel-button:hover {
+  @apply bg-white text-black;
+}
+
+.scanline {
+  width: 100%;
+  height: 100px;
+  z-index: 100;
+  background: linear-gradient(
+    0deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  opacity: 0.1;
+  position: fixed;
+  bottom: 100%;
+  animation: scanline 10s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes scanline {
+  0% { bottom: 100%; }
+  100% { bottom: -100px; }
+}
