@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
-import { Ghost, Star, Gamepad2, Search, User, LogIn, X } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Ghost, Star, Gamepad2, Search, User, LogIn, X, RefreshCw } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { cn } from './lib/utils';
 
 export const GAMES = [
@@ -59,8 +60,13 @@ export default function App() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
   const [user, setUser] = useState<{ username: string } | null>(() => {
-    const saved = localStorage.getItem('pixel_user');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('pixel_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      console.error("Failed to parse user from localStorage", e);
+      return null;
+    }
   });
 
   const filteredGames = useMemo(() => {
@@ -112,24 +118,40 @@ export default function App() {
     };
 
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center bg-black gap-4">
-        <iframe 
-          id="game-iframe" 
-          name="appFrame" 
-          src={gameUrls[activeGame!]} 
-          title="flashcard-frame" 
-          allowFullScreen={true}
-          allow="autoplay; fullscreen; camera; focus-without-user-activation *; monetization; gamepad; keyboard-map *; xr-spatial-tracking; clipboard-write" 
-          sandbox="allow-forms allow-modals allow-orientation-lock allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-presentation allow-scripts allow-same-origin allow-downloads" 
-          scrolling="no" 
-          className="w-full h-[600px] border-4 border-white pixel-border"
-        />
-        <button 
-          onClick={handleFullscreen}
-          className="pixel-button flex items-center gap-2"
-        >
-          ENTER FULLSCREEN
-        </button>
+      <div className="w-full h-full flex flex-col items-center justify-center bg-black gap-6">
+        <div className="relative w-full h-[600px] border-4 border-white pixel-border bg-zinc-950 flex items-center justify-center overflow-hidden">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
+            <Ghost className="text-zinc-800 animate-bounce" size={48} />
+            <div className="font-pixel text-[10px] text-zinc-700 animate-pulse">
+              INITIALIZING GAME ENGINE...
+            </div>
+          </div>
+          <iframe 
+            id="game-iframe" 
+            name="appFrame" 
+            src={gameUrls[activeGame!]} 
+            title="game-frame" 
+            allowFullScreen={true}
+            allow="autoplay; fullscreen; camera; focus-without-user-activation *; monetization; gamepad; keyboard-map *; xr-spatial-tracking; clipboard-write" 
+            sandbox="allow-forms allow-modals allow-orientation-lock allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-presentation allow-scripts allow-same-origin allow-downloads" 
+            scrolling="no" 
+            className="relative z-10 w-full h-full bg-transparent"
+          />
+        </div>
+        <div className="flex flex-wrap justify-center gap-4">
+          <button 
+            onClick={handleFullscreen}
+            className="pixel-button flex items-center gap-2"
+          >
+            ENTER FULLSCREEN
+          </button>
+          <button 
+            onClick={() => setActiveGame(null)}
+            className="pixel-button flex items-center gap-2 bg-zinc-800"
+          >
+            EXIT GAME
+          </button>
+        </div>
       </div>
     );
   };
@@ -195,78 +217,110 @@ export default function App() {
 
       {/* Main Content */}
       <main className="flex-1 max-w-7xl mx-auto w-full p-6">
-        {activeGame ? (
-          <div className="flex flex-col gap-6">
-            <div className="flex items-center justify-between">
-              <button 
-                onClick={() => setActiveGame(null)}
-                className="text-zinc-500 font-pixel text-[10px] hover:text-white transition-colors"
-              >
-                &lt; BACK TO CATALOG
-              </button>
-              <h2 className="font-pixel text-xl text-white">
-                {GAMES.find(g => g.id === activeGame)?.title}
-              </h2>
-            </div>
-            <div className="bg-zinc-900/30 rounded-3xl border-2 border-white p-4 min-h-[650px] flex items-center justify-center">
-              {renderGame()}
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-12">
-            {/* Hero */}
-            <section className="py-12 text-center space-y-6">
-              <div className="flex justify-center mb-4">
-                <Ghost size={80} className="text-white animate-pulse" />
-              </div>
-              <h2 className="font-pixel text-4xl md:text-6xl text-white leading-tight">
-                UNBLOCKED <br />
-                <span className="text-white">GHOST MODE</span>
-              </h2>
-              <p className="text-zinc-500 font-pixel text-xs max-w-xl mx-auto leading-relaxed">
-                Monochrome gaming experience. Pure gameplay, zero distractions.
-              </p>
-            </section>
-
-            {/* Game Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filteredGames.length > 0 ? filteredGames.map((game) => (
-                <button
-                  key={game.id}
-                  onClick={() => setActiveGame(game.id)}
-                  className="group relative flex flex-col text-left bg-zinc-900/50 border-2 border-zinc-800 hover:border-white transition-all p-6 rounded-2xl overflow-hidden"
+        <AnimatePresence mode="wait">
+          {activeGame ? (
+            <motion.div 
+              key="game-view"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.05 }}
+              className="flex flex-col gap-6"
+            >
+              <div className="flex items-center justify-between">
+                <button 
+                  onClick={() => setActiveGame(null)}
+                  className="text-zinc-500 font-pixel text-[10px] hover:text-white transition-colors flex items-center gap-2"
                 >
-                  <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <game.icon size={80} />
-                  </div>
-                  
-                  <div className={cn("mb-4 p-3 rounded-lg bg-white w-fit", "text-black")}>
-                    <game.icon size={24} />
-                  </div>
-
-                  <h3 className="font-pixel text-lg mb-2 group-hover:text-white transition-colors">
-                    {game.title}
-                  </h3>
-                  <p className="text-zinc-500 text-sm mb-6 line-clamp-2">
-                    {game.description}
-                  </p>
-
-                  <div className="mt-auto flex gap-2">
-                    {game.tags.map(tag => (
-                      <span key={tag} className="text-[8px] font-pixel px-2 py-1 bg-zinc-800 text-zinc-400 rounded">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
+                  &lt; BACK TO CATALOG
                 </button>
-              )) : (
-                <div className="col-span-full py-20 text-center">
-                  <p className="font-pixel text-zinc-600 text-xs">NO GAMES FOUND MATCHING "{searchQuery.toUpperCase()}"</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+                <h2 className="font-pixel text-xl text-white">
+                  {GAMES.find(g => g.id === activeGame)?.title}
+                </h2>
+              </div>
+              <div className="bg-zinc-900/30 rounded-3xl border-2 border-white p-4 min-h-[650px] flex items-center justify-center">
+                {renderGame()}
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div 
+              key="catalog-view"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="space-y-12"
+            >
+              {/* Hero */}
+              <section className="py-12 text-center space-y-6">
+                <motion.div 
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="flex justify-center mb-4"
+                >
+                  <Ghost size={80} className="text-white animate-pulse" />
+                </motion.div>
+                <motion.h2 
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                  className="font-pixel text-4xl md:text-6xl text-white leading-tight"
+                >
+                  UNBLOCKED <br />
+                  <span className="text-white">GHOST MODE</span>
+                </motion.h2>
+                <motion.p 
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.4 }}
+                  className="text-zinc-500 font-pixel text-xs max-w-xl mx-auto leading-relaxed"
+                >
+                  Monochrome gaming experience. Pure gameplay, zero distractions.
+                </motion.p>
+              </section>
+
+              {/* Game Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {filteredGames.length > 0 ? filteredGames.map((game, index) => (
+                  <motion.button
+                    key={game.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 * index }}
+                    onClick={() => setActiveGame(game.id)}
+                    className="group relative flex flex-col text-left bg-zinc-900/50 border-2 border-zinc-800 hover:border-white transition-all p-6 rounded-2xl overflow-hidden"
+                  >
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                      <game.icon size={80} />
+                    </div>
+                    
+                    <div className={cn("mb-4 p-3 rounded-lg bg-white w-fit", "text-black")}>
+                      <game.icon size={24} />
+                    </div>
+
+                    <h3 className="font-pixel text-lg mb-2 group-hover:text-white transition-colors">
+                      {game.title}
+                    </h3>
+                    <p className="text-zinc-500 text-sm mb-6 line-clamp-2">
+                      {game.description}
+                    </p>
+
+                    <div className="mt-auto flex gap-2">
+                      {game.tags.map(tag => (
+                        <span key={tag} className="text-[8px] font-pixel px-2 py-1 bg-zinc-800 text-zinc-400 rounded">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </motion.button>
+                )) : (
+                  <div className="col-span-full py-20 text-center">
+                    <p className="font-pixel text-zinc-600 text-xs">NO GAMES FOUND MATCHING "{searchQuery.toUpperCase()}"</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
 
       {/* Auth Modal */}

@@ -1,5 +1,5 @@
 {
-  "name": "Copy of Pixel Games",
+  "name": "Pixel Games",
   "description": "A collection of retro-style unblocked games for quick entertainment.",
-  "requestFramePermissions": []
+  "requestFramePermissions": ["camera", "microphone", "geolocation"]
 }
