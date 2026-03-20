@@ -4,6 +4,8 @@ import App from './App.tsx';
 import './index.css';
 import { Ghost } from 'lucide-react';
 
+console.log("PIXEL ENGINE: INITIALIZING...");
+
 interface ErrorBoundaryProps {
   children: ReactNode;
 }
